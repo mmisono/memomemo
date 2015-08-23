@@ -26,6 +26,7 @@ def find_files(mtime):
                 filenames.remove(e)
 
         for filename in filenames:
+            if filename[0] == ".": continue # skip hidden file
             f = os.path.join(dirpath,filename)
             mt = os.path.getmtime(f)
             if mt > mtime:
@@ -89,7 +90,9 @@ def update(files):
     """ update README and tags
     """
     lines = ""
+    names = []
     for f in files:
+        names.append(f[0])
         d = get_metadata(f[0])
         t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(f[1]))
         lines += "- {0}: [{1}]({2})\n".format(t,d["title"],f[0])
@@ -97,9 +100,29 @@ def update(files):
             lines += "    - "+', '.join(d["tags"]) + "\n"
 
     with open(README_FILE_NAME,"r+") as f:
-        content = f.read()
+        contents = f.readlines()
+
         f.seek(0,0)
-        f.write(lines+content)
+        f.write(lines)
+
+        i = 0
+        while  i < len(contents):
+            c = contents[i]
+            skip = False
+            if c[0] == "-":
+                for n in names:
+                    if c.find(n) != -1:
+                        # remove duplicate entry
+                        i += 1
+                        skip = True
+                        while i < len(contents) \
+                            and contents[i][0] != "-":
+                            i += 1
+                        break
+            if not skip:
+                f.write(c)
+                i += 1
+
 
 def create_readme():
     """ create empty README.md
